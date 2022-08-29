@@ -19,7 +19,7 @@
     },
     "adminUsername": {
       "type": "string",
-      "defaultValue": "paloalto",
+      "defaultValue": "fwadmin",
       "metadata": {
         "description": "The username for the administrator account on the VM-Series firewall."
       }
@@ -33,7 +33,7 @@
     },
     "bootstrapStorageAccount": {
       "type": "string",
-      "defaultValue": "bootstrapvmseries",
+      "defaultValue": "gwlb2",
       "metadata":{
         "description": "The name of the storage account that contains the bootstrap file share."
       }
