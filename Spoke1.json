@@ -24,7 +24,7 @@
       },
       "adminUsername": {
         "type": "string",
-        "defaultValue": "paloalto",
+        "defaultValue": "fwadmin",
         "metadata": {
           "description": "Admin username of os profile"
         }
