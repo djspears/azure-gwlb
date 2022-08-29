@@ -1,0 +1,360 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "secResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "sec resource group"
+        }
+      },  
+      "secLBName": {
+        "type": "string",
+        "defaultValue": "secLB",
+        "metadata": {
+          "description": "Place here the name of your sec LB Frontend Private IP"
+        }
+      },  
+      "secFrontendIPName": {
+        "type": "string",
+        "defaultValue": "FEIpconfig1",
+        "metadata": {
+          "description": "Place here the name of your sec LB Frontend Private IP"
+        }
+      },
+      "adminUsername": {
+        "type": "string",
+        "defaultValue": "paloalto",
+        "metadata": {
+          "description": "Admin username of os profile"
+        }
+      },
+      "adminPassword": {
+        "type": "securestring",
+        "metadata": {
+          "description": "Admin password of os profile"
+        }
+      },
+      "imagePublisher": {
+        "type": "string",
+        "defaultValue": "Canonical",
+        "metadata": {
+          "description": "Image Publisher"
+        }
+      },
+      "imageOffer": {
+        "type": "string",
+        "defaultValue": "UbuntuServer",
+        "metadata": {
+          "description": "Image Offer"
+        }
+      },
+      "imageSKU": {
+        "type": "string",
+        "defaultValue": "18.04-LTS",
+        "metadata": {
+          "description": "Image SKU"
+        }
+      },
+      "vmSize": {
+        "type": "string",
+        "defaultValue": "Standard_A1_v2",
+        "metadata": {
+          "description": "Size of the VM"
+        }
+      },
+      "VNETName": {
+        "type": "string",
+        "defaultValue": "spoke1VNET",
+        "metadata": {
+          "description": "Size of the VM"
+        }
+      },
+      "SubnetName": {
+        "type": "string",
+        "defaultValue": "Subnet-1",
+        "metadata": {
+          "description": "Size of the VM"
+        }
+      },
+      "VNETPrefix": {
+        "type": "string",
+        "defaultValue": "10.240.0.0/16",
+        "metadata": {
+          "description": "Size of the VM"
+        }
+      },
+      "SubnetPrefix": {
+        "type": "string",
+        "defaultValue": "10.240.0.0/24",
+        "metadata": {
+          "description": "Size of the VM"
+        }
+      }
+    },
+    "variables": {
+      "networkSecurityGroupName": "networkSecurityGroup1",
+      "spoke1LbName": "spoke1LB",
+      "spoke1VmName": "spoke1VM",
+      "spoke1PublicIPAddressName": "spoke1Pip",
+      "spoke1VnetName": "[parameters('VNETName')]",
+      "spoke1SubnetName": "[parameters('SubnetName')]",
+      "spoke1NicName": "spoke1Nic",
+      "spoke1SubnetPrefix": "[parameters('SubnetPrefix')]",
+      "spoke1AddressPrefix": "[parameters('VNETPrefix')]",
+      "publicIPAddressType": "Static",
+      "spoke1VnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('spoke1VnetName'))]",
+      "spoke1SubnetRef": "[concat(variables('spoke1VnetID'),'/subnets/',variables('spoke1SubnetName'))]",
+      "spoke1lbID": "[resourceId('Microsoft.Network/loadBalancers',variables('spoke1LbName'))]",
+      "SubscriptionsID": "[subscription().subscriptionId]",
+      "storageAccountDomain": "core.windows.net"
+    },
+    "resources": [
+      {
+        "apiVersion": "2016-03-30",
+        "type": "Microsoft.Network/networkSecurityGroups",
+        "name": "[variables('networkSecurityGroupName')]",
+        "location": "[resourceGroup().location]",
+        "properties": {
+          "securityRules": [
+            {
+              "name": "unblock_all_tcp_rule",
+              "properties": {
+                "description": "unblock_all_tcp_rule",
+                "protocol": "Tcp",
+                "sourcePortRange": "0-65535",
+                "destinationPortRange": "0-65535",
+                "sourceAddressPrefix": "0.0.0.0/0",
+                "destinationAddressPrefix": "0.0.0.0/0",
+                "access": "Allow",
+                "priority": 123,
+                "direction": "Inbound"
+              }
+            },
+            {
+              "name": "unblock_all_tcp_outrule",
+              "properties": {
+                "description": "unblock_all_tcp_outrule",
+                "protocol": "Tcp",
+                "sourcePortRange": "0-65535",
+                "destinationPortRange": "0-65535",
+                "sourceAddressPrefix": "0.0.0.0/0",
+                "destinationAddressPrefix": "0.0.0.0/0",
+                "access": "Allow",
+                "priority": 123,
+                "direction": "Outbound"
+              }
+            },
+            {
+              "name": "unblock_all_udp_ports",
+              "properties": {
+                "description": "Unblock_all_udp_ports",
+                "protocol": "Udp",
+                "sourcePortRange": "0-65535",
+                "destinationPortRange": "0-65535",
+                "sourceAddressPrefix": "0.0.0.0/0",
+                "destinationAddressPrefix": "0.0.0.0/0",
+                "access": "Allow",
+                "priority": 125,
+                "direction": "Inbound"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "apiVersion": "2017-08-01",
+        "type": "Microsoft.Network/publicIPAddresses",
+        "name": "[variables('spoke1PublicIPAddressName')]",
+        "location": "[resourceGroup().location]",
+        "sku": {
+          "name": "Standard"
+        },
+        "properties": {
+          "publicIPAddressVersion": "IPv4",
+          "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
+        }
+      },
+      {
+        "apiVersion": "2015-05-01-preview",
+        "type": "Microsoft.Network/networkInterfaces",
+        "name": "[variables('spoke1NicName')]",
+        "location": "[resourceGroup().location]",
+        "dependsOn": [
+          "[concat('Microsoft.Network/virtualNetworks/', variables('spoke1VnetName'))]",
+          "[concat('Microsoft.Network/loadBalancers/', variables('spoke1LbName'))]"
+        ],
+        "properties": {
+          "ipConfigurations": [
+            {
+              "name": "ipconfig1",
+              "properties": {
+                "privateIPAllocationMethod": "Dynamic",
+                "subnet": {
+                  "id": "[variables('spoke1SubnetRef')]"
+                },
+                "loadBalancerProbeStatus": "Up",
+                "loadBalancerBackendAddressPools": [
+                  {
+                    "id": "[concat(variables('spoke1LbID'), '/backendAddressPools/BackendPool1')]"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "apiVersion": "2015-05-01-preview",
+        "type": "Microsoft.Network/virtualNetworks",
+        "name": "[variables('spoke1VnetName')]",
+        "location": "[resourceGroup().location]",
+        "dependsOn": [
+          "[concat('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroupName'))]"
+        ],
+        "properties": {
+          "addressSpace": {
+            "addressPrefixes": [
+              "[variables('spoke1AddressPrefix')]"
+            ]
+          },
+          "subnets": [
+            {
+              "name": "[variables('spoke1SubnetName')]",
+              "properties": {
+                "addressPrefix": "[variables('spoke1SubnetPrefix')]",
+                "networkSecurityGroup": {
+                  "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "Microsoft.Compute/virtualMachines",
+        "name": "[variables('spoke1VmName')]",
+        "apiVersion": "2016-04-30-preview",
+        "location": "[resourceGroup().location]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Network/networkInterfaces', variables('spoke1NicName'))]"
+        ],
+        "properties": {
+          "hardwareProfile": {
+            "vmSize": "[parameters('vmSize')]"
+          },
+          "osProfile": {
+            "computerName": "[variables('spoke1VmName')]",
+            "adminUsername": "[parameters('adminUsername')]",
+            "adminPassword": "[parameters('adminPassword')]"
+          },
+          "storageProfile": {
+            "imageReference": {
+              "publisher": "[parameters('imagePublisher')]",
+              "offer": "[parameters('imageOffer')]",
+              "sku": "[parameters('imageSKU')]",
+              "version": "latest"
+            },
+            "osDisk": {
+              "createOption": "FromImage"
+            }
+          },
+          "networkProfile": {
+            "networkInterfaces": [
+              {
+                "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('spoke1NicName'))]",
+                "properties": {
+                  "primary": true
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(variables('spoke1VmName'),'/newuserscript')]",
+      "apiVersion": "2021-07-01",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines/', variables('spoke1VmName'))]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "typeHandlerVersion": "2.0",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "commandToExecute": "echo '<html><head><title>Go PaloAlto Networks - Azure GWLB works!</title></head><body>Welcome to PaloAlto Networks</body></html>' >> /home/ubuntu/index.html && python -m SimpleHTTPServer 8080 &"
+        }
+      }
+    },
+      {
+        "apiVersion": "2020-08-01",
+        "name": "[variables('spoke1LbName')]",
+        "type": "Microsoft.Network/loadBalancers",
+        "location": "[resourceGroup().location]",
+        "sku": {
+          "name": "Standard"
+        },
+        "dependsOn": [
+          "[concat('Microsoft.Network/publicIPAddresses/', variables('spoke1PublicIPAddressName'))]"
+        ],
+        "properties": {
+          "frontendIPConfigurations": [
+            {
+              "name": "LoadBalancerFrontEnd",
+              "properties": {
+                "publicIPAddress": {
+                  "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('spoke1PublicIPAddressName'))]"
+                },
+                "privateIPAddressVersion": "IPv4",
+                "gatewayLoadBalancer": {
+                  "id": "[concat('/subscriptions/',variables('SubscriptionsID'),'/resourceGroups/',parameters('secResourceGroup'),'/secs/Microsoft.Network/loadBalancers/',parameters('secLBName'),'/frontendIPConfigurations/',parameters('secFrontendIPName'),'')]"
+                }
+              }
+            }
+          ],
+          "backendAddressPools": [
+            {
+              "name": "BackendPool1"
+            }
+          ],
+          "probes": [
+            {
+              "name": "spoke1_http_health_probe",
+              "properties": {
+                  "protocol": "Tcp",
+                  "port": 8080,
+                  "intervalInSeconds": 5,
+                  "numberOfProbes": 2
+              }
+            }
+          ],
+          "loadBalancingRules": [
+            {
+              "name": "LBRule",
+              "properties": {
+                "frontendIPConfiguration": {
+                  "id": "[concat(variables('spoke1LbID'),'/frontendIPConfigurations/LoadBalancerFrontEnd')]"
+                },
+                "backendAddressPool": {
+                  "id": "[concat(variables('spoke1lbID'),'/backendAddressPools/BackendPool1')]"
+                },
+                "probe": {
+                  "id": "[concat(variables('spoke1lbID'),'/probes/spoke1_http_health_probe')]"
+                },
+                "protocol": "Tcp",
+                "enableTcpReset": true,
+                "frontendPort": 50000,
+                "backendPort": 80,
+                "enableFloatingIP": false,
+                "idleTimeoutInMinutes": 5
+              }
+
+            }
+          ]
+        }
+      }
+    ]
+  }
