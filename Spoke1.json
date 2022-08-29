@@ -4,6 +4,7 @@
     "parameters": {
       "secResourceGroup": {
       "type": "string",
+      "defaultValue": "secRG1",
       "metadata": {
         "description": "sec resource group"
         }
