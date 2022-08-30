@@ -4,6 +4,7 @@
     "parameters": {
       "secResourceGroup": {
       "type": "string",
+      "defaultValue": "gwlb",
       "metadata": {
         "description": "sec resource group"
         }
