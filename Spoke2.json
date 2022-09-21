@@ -326,7 +326,7 @@
               "name": "spoke2_http_health_probe",
               "properties": {
                   "protocol": "Tcp",
-                  "port": 8080,
+                  "port": 80,
                   "intervalInSeconds": 5,
                   "numberOfProbes": 2
               }
